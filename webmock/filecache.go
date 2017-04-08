@@ -19,13 +19,16 @@ func NewFileCache(root string) Cache {
 	return &fileCache{root: root}
 }
 
-func (fc *fileCache) Save(reqBody []byte, req *http.Request, respBody []byte, resp *http.Response) error {
-	var (
-		url  = req.URL.Host + req.URL.Path
-		file = req.Method + ".json"
-		dst  = filepath.Join(fc.root, url, file)
-	)
+func (fc *fileCache) write(conn *Connection, req *http.Request) error {
+	dst := filepath.Join(fc.root, req.URL.String(), req.Method+".json")
+	bs, err := json.Marshal(conn)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(dst, bs, 0644)
+}
 
+func (fc *fileCache) Save(reqBody []byte, req *http.Request, respBody []byte, resp *http.Response) error {
 	reqStruct, err := requestStruct(string(reqBody), req)
 	if err != nil {
 		return err
@@ -34,12 +37,8 @@ func (fc *fileCache) Save(reqBody []byte, req *http.Request, respBody []byte, re
 	if err != nil {
 		return err
 	}
-	conn := Connection{Request: reqStruct, Response: respStruct, RecordedAt: resp.Header.Get("Date")}
-	byteArr, err := structToJSON(conn)
-	if err != nil {
-		return err
-	}
-	if err := writeFile(string(byteArr), dst); err != nil {
+	conn := &Connection{Request: reqStruct, Response: respStruct, RecordedAt: resp.Header.Get("Date")}
+	if err := fc.write(conn, req); err != nil {
 		return err
 	}
 	log.Printf("[INFO] Create HTTP/S connection cache.")
@@ -57,7 +56,7 @@ func (fc *fileCache) Find(req *http.Request) (*http.Response, error) {
 		file = req.Method + ".json"
 		dst  = filepath.Join(fc.root, url, file)
 	)
-	b, err := readFile(dst)
+	b, err := ioutil.ReadFile(dst)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read local cache file")
 	}
