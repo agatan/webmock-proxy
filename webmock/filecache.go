@@ -1,10 +1,12 @@
 package webmock
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 )
 
 type fileCache struct {
@@ -43,5 +45,33 @@ func (fc *fileCache) Save(reqBody []byte, req *http.Request, respBody []byte, re
 }
 
 func (fc *fileCache) Find(req *http.Request) (*http.Response, error) {
-	return nil, errors.New("not implemented yet")
+	reqBody, err := ioReader(req.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read request body")
+	}
+	var (
+		url  = req.URL.Host + req.URL.Path
+		file = req.Method + ".json"
+		dst  = filepath.Join(fc.root, url, file)
+	)
+	b, err := readFile(dst)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read local cache file")
+	}
+	conn := new(Connection)
+	err = jsonToStruct(b, conn)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read serialized local cache")
+	}
+	is, err := validateRequest(req, conn, reqBody)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find cache")
+	} else if is == false {
+		return nil, fmt.Errorf("cache not found for %s %s", req.Method, req.URL.String())
+	}
+	resp, err := createHttpResponse(req, conn)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create http response")
+	}
+	return resp, nil
 }

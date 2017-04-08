@@ -61,7 +61,7 @@ func (dc *dbCache) Save(reqBody []byte, req *http.Request, respBody []byte, resp
 func (dc *dbCache) Find(req *http.Request) (*http.Response, error) {
 	reqBody, err := ioReader(req.Body)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		return nil, errors.Wrap(err, "failed to read request body")
 	}
 	endpoint := findEndpoint(req.Method, req.URL.Host+req.URL.Path, dc.db)
 	if len(endpoint.Connections) == 0 {
