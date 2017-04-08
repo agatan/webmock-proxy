@@ -14,6 +14,7 @@ import (
 type Server struct {
 	config *Config
 	db     *gorm.DB
+	cache  Cache
 	proxy  *goproxy.ProxyHttpServer
 	body   string
 	head   map[string][]string
@@ -24,10 +25,17 @@ func NewServer(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	var cache Cache
+	if config.local == true {
+		cache = NewFileCache(config.cacheDir)
+	} else {
+		cache = NewDBCache(db)
+	}
 
 	return &Server{
 		config: config,
 		db:     db,
+		cache:  cache,
 		proxy:  goproxy.NewProxyHttpServer(),
 		body:   "",
 		head:   make(map[string][]string),
@@ -67,8 +75,7 @@ func (s *Server) connectionCacheHandler() {
 			func(b []byte, pctx *goproxy.ProxyCtx) []byte {
 				log.Printf("[INFO] resp %s", pctx.Resp.Status)
 				ctx := pctx.UserData.(*Context)
-				err := createCache(string(ctx.RequestBody), b, pctx.Req, pctx.Resp, s)
-				if err != nil {
+				if err := s.cache.Save(ctx.RequestBody, pctx.Req, b, pctx.Resp); err != nil {
 					log.Printf("[ERROR] %v", err)
 				}
 				fmt.Println(string(b))
