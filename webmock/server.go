@@ -13,7 +13,6 @@ import (
 
 type Server struct {
 	config *Config
-	db     *gorm.DB
 	cache  Cache
 	proxy  *goproxy.ProxyHttpServer
 	body   string
@@ -21,20 +20,19 @@ type Server struct {
 }
 
 func NewServer(config *Config) (*Server, error) {
-	db, err := initDB(config)
-	if err != nil {
-		return nil, err
-	}
 	var cache Cache
 	if config.local == true {
 		cache = NewFileCache(config.cacheDir)
 	} else {
+		db, err := initDB(config)
+		if err != nil {
+			return nil, err
+		}
 		cache = NewDBCache(db)
 	}
 
 	return &Server{
 		config: config,
-		db:     db,
 		cache:  cache,
 		proxy:  goproxy.NewProxyHttpServer(),
 		body:   "",

@@ -1,10 +1,6 @@
 package webmock
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"path/filepath"
 	"time"
 )
 
@@ -38,30 +34,4 @@ type Response struct {
 	Status       string `json:"status"`
 	Header       string `json:"header"`
 	String       string `json:"string"`
-}
-
-func NewConnection(req *http.Request, s *Server) (*Connection, error) {
-	var (
-		root = s.config.cacheDir + "/"
-		url  = req.URL.Host + req.URL.Path
-		file = req.Method + ".json"
-		dst  = filepath.Join(root, url, file)
-	)
-	if s.config.local == true {
-		b, err := readFile(dst)
-		if err != nil {
-			return nil, fmt.Errorf("Faild to load cache file: %v", err)
-		}
-		var conn Connection
-		err = json.Unmarshal(b, &conn)
-		if err != nil {
-			return nil, fmt.Errorf("Faild to convert json into struct: %v", err)
-		}
-		return &conn, nil
-	}
-	endpoint := findEndpoint(req.Method, url, s.db)
-	if len(endpoint.Connections) == 0 {
-		return nil, nil
-	}
-	return &endpoint.Connections[0], nil
 }
