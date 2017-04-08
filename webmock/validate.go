@@ -1,6 +1,7 @@
 package webmock
 
 import (
+	"encoding/json"
 	"net/http"
 	"reflect"
 )
@@ -8,8 +9,7 @@ import (
 func validateRequest(req *http.Request, conn *Connection, body []byte) (bool, error) {
 	var header interface{}
 	b := []byte(conn.Request.Header)
-	err := jsonToStruct(b, &header)
-	if err != nil {
+	if err := json.Unmarshal(b, &header); err != nil {
 		return false, err
 	}
 	if (string(body) == conn.Request.String) &&

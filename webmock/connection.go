@@ -1,6 +1,7 @@
 package webmock
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -52,7 +53,7 @@ func NewConnection(req *http.Request, s *Server) (*Connection, error) {
 			return nil, fmt.Errorf("Faild to load cache file: %v", err)
 		}
 		var conn Connection
-		err = jsonToStruct(b, &conn)
+		err = json.Unmarshal(b, &conn)
 		if err != nil {
 			return nil, fmt.Errorf("Faild to convert json into struct: %v", err)
 		}

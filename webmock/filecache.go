@@ -1,6 +1,7 @@
 package webmock
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -61,8 +62,7 @@ func (fc *fileCache) Find(req *http.Request) (*http.Response, error) {
 		return nil, errors.Wrap(err, "failed to read local cache file")
 	}
 	conn := new(Connection)
-	err = jsonToStruct(b, conn)
-	if err != nil {
+	if err := json.Unmarshal(b, conn); err != nil {
 		return nil, errors.Wrap(err, "failed to read serialized local cache")
 	}
 	is, err := validateRequest(req, conn, reqBody)
