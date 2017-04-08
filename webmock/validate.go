@@ -5,14 +5,14 @@ import (
 	"reflect"
 )
 
-func validateRequest(req *http.Request, conn *Connection, body string) (bool, error) {
+func validateRequest(req *http.Request, conn *Connection, body []byte) (bool, error) {
 	var header interface{}
 	b := []byte(conn.Request.Header)
 	err := jsonToStruct(b, &header)
 	if err != nil {
 		return false, err
 	}
-	if (body == conn.Request.String) &&
+	if (string(body) == conn.Request.String) &&
 		(reflect.DeepEqual(mapToMapInterface(req.Header), header) == true) &&
 		(req.Method == conn.Request.Method) {
 		return true, nil

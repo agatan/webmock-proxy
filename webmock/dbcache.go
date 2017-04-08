@@ -2,6 +2,7 @@ package webmock
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -59,10 +60,11 @@ func (dc *dbCache) Save(reqBody []byte, req *http.Request, respBody []byte, resp
 }
 
 func (dc *dbCache) Find(req *http.Request) (*http.Response, error) {
-	reqBody, err := ioReader(req.Body)
+	reqBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read request body")
 	}
+	req.Body.Close()
 	endpoint := findEndpoint(req.Method, req.URL.Host+req.URL.Path, dc.db)
 	if len(endpoint.Connections) == 0 {
 		return nil, fmt.Errorf("cache not found for %s %s", req.Method, req.URL.String())

@@ -2,6 +2,7 @@ package webmock
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -45,10 +46,11 @@ func (fc *fileCache) Save(reqBody []byte, req *http.Request, respBody []byte, re
 }
 
 func (fc *fileCache) Find(req *http.Request) (*http.Response, error) {
-	reqBody, err := ioReader(req.Body)
+	reqBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read request body")
 	}
+	req.Body.Close()
 	var (
 		url  = req.URL.Host + req.URL.Path
 		file = req.Method + ".json"
