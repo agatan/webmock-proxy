@@ -24,14 +24,6 @@ func structToJSON(v interface{}, indentFlag ...bool) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func jsonToStruct(b []byte, v interface{}) error {
-	err := json.Unmarshal(b, v)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // Webmock-proxy need to validate http response header because of using cache data.
 // But, after converting Request.Header (json str) into Struct using json.Marshal(),
 // Struct type has changed map[string][]interface{} (original: map[string][]string)
