@@ -83,7 +83,6 @@ func (s *Server) connectionCacheHandler() {
 				if err := s.cache.Save(ctx.RequestBody, pctx.Req, b, pctx.Resp); err != nil {
 					log.Printf("[ERROR] %v", err)
 				}
-				fmt.Println(string(b))
 				return b
 			}))
 }

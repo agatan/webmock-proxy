@@ -26,9 +26,8 @@ func createHttpResponse(req *http.Request, conn *Connection) (*http.Response, er
 	if err := json.Unmarshal(b, &header); err != nil {
 		return goproxy.NewResponse(req, "application/json", http.StatusInternalServerError, errms), err
 	}
-	body := resp.String
 	log.Printf("[INFO] Create HTTP/S response using connection cache.")
-	fmt.Println(body)
+	fmt.Println(resp.String)
 	return newResponse(req, &resp, header)
 }
 
@@ -38,7 +37,6 @@ func createHttpErrorResponse(r *http.Request) (*http.Response, error) {
 		return goproxy.NewResponse(r, "application/json", http.StatusInternalServerError, errms), err
 	}
 	log.Printf("[INFO] Not match http connection cache.")
-	fmt.Println(body)
 	return goproxy.NewResponse(r, "application/json", http.StatusTeapot, body), nil
 }
 
