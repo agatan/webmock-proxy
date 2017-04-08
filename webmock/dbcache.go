@@ -1,11 +1,13 @@
 package webmock
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 type dbCache struct {
@@ -54,4 +56,27 @@ func (dc *dbCache) Save(reqBody []byte, req *http.Request, respBody []byte, resp
 	}
 	log.Printf("[INFO] Create HTTP/S connection cache.")
 	return nil
+}
+
+func (dc *dbCache) Find(req *http.Request) (*http.Response, error) {
+	reqBody, err := ioReader(req.Body)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+	}
+	endpoint := findEndpoint(req.Method, req.URL.Host+req.URL.Path, dc.db)
+	if len(endpoint.Connections) == 0 {
+		return nil, fmt.Errorf("cache not found for %s %s", req.Method, req.URL.String())
+	}
+	conn := &endpoint.Connections[0]
+	is, err := validateRequest(req, conn, reqBody)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find cache")
+	} else if is == false {
+		return nil, fmt.Errorf("cache not found for %s %s", req.Method, req.URL.String())
+	}
+	resp, err := createHttpResponse(req, conn)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create http response")
+	}
+	return resp, nil
 }

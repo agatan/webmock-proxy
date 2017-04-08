@@ -1,6 +1,7 @@
 package webmock
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -39,4 +40,8 @@ func (fc *fileCache) Save(reqBody []byte, req *http.Request, respBody []byte, re
 	}
 	log.Printf("[INFO] Create HTTP/S connection cache.")
 	return nil
+}
+
+func (fc *fileCache) Find(req *http.Request) (*http.Response, error) {
+	return nil, errors.New("not implemented yet")
 }

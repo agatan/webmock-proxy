@@ -55,6 +55,11 @@ func initDB(config *Config) (*gorm.DB, error) {
 	return nil, nil
 }
 
+func newErrorResponse(req *http.Request, err error) *http.Response {
+	msg := fmt.Sprintf(`{"error": %q"}`, err.Error())
+	return goproxy.NewResponse(req, "application/json", http.StatusInternalServerError, msg)
+}
+
 func (s *Server) connectionCacheHandler() {
 	s.proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
 	s.proxy.OnRequest().DoFunc(
@@ -88,34 +93,10 @@ func (s *Server) mockOnlyHandler() {
 	s.proxy.OnRequest().DoFunc(
 		func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 			log.Printf("[INFO] req %s %s", ctx.Req.Method, ctx.Req.URL.Host+ctx.Req.URL.Path)
-			reqBody, err := ioReader(req.Body)
+			resp, err := s.cache.Find(req)
 			if err != nil {
-				log.Printf("[ERROR] %v", err)
+				return req, newErrorResponse(req, err)
 			}
-			conn, err := NewConnection(req, s)
-			if err != nil {
-				log.Printf("[ERROR] %v", err)
-			}
-			var resp *http.Response
-			if conn != nil {
-				is, err := validateRequest(req, conn, reqBody)
-				if err != nil {
-					log.Printf("[ERROR] %v", err)
-				}
-				if is == true {
-					resp, err = createHttpResponse(req, conn)
-					if err != nil {
-						log.Printf("[ERROR] %v", err)
-					}
-					req.Body = ioutil.NopCloser(bytes.NewBufferString(reqBody))
-					return req, resp
-				}
-			}
-			resp, err = createHttpErrorResponse(req)
-			if err != nil {
-				log.Printf("[ERROR] %v", err)
-			}
-			req.Body = ioutil.NopCloser(bytes.NewBufferString(reqBody))
 			return req, resp
 		})
 }
