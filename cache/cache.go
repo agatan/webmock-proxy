@@ -39,7 +39,7 @@ func New(basedir string) (*Cache, error) {
 			return nil, errors.Wrapf(err, "failed to open %s", fullpath)
 		}
 		defer f.Close()
-		es, err := load(f)
+		es, err := loadExchanges(f)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to load yaml for %s", hostdir.Name())
 		}

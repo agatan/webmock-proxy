@@ -15,7 +15,7 @@ type exchange struct {
 	Response *response `yaml:"response"`
 }
 
-func load(r io.Reader) ([]*exchange, error) {
+func loadExchanges(r io.Reader) ([]*exchange, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read yaml")
