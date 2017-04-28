@@ -9,6 +9,7 @@ import (
 
 	"github.com/elazarl/goproxy"
 	"github.com/jinzhu/gorm"
+	"github.com/wantedly/webmock-proxy/cache"
 )
 
 type Server struct {
@@ -63,6 +64,11 @@ func (s *Server) connectionCacheHandler() {
 	s.proxy.OnRequest().DoFunc(
 		func(req *http.Request, pctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 			log.Printf("[INFO] req %s %s", pctx.Req.Method, pctx.Req.URL.Host+pctx.Req.URL.Path)
+
+			c := cache.New(".webmock")
+			if err := c.Record(req); err != nil {
+				panic(err)
+			}
 
 			body, err := ioutil.ReadAll(req.Body)
 			if err != nil {
