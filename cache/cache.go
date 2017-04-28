@@ -18,11 +18,35 @@ type Cache struct {
 	hosts   map[string][]*exchange
 }
 
-func New(basedir string) *Cache {
-	return &Cache{
+func New(basedir string) (*Cache, error) {
+	c := &Cache{
 		basedir: basedir,
 		hosts:   make(map[string][]*exchange),
 	}
+	hostdirs, err := ioutil.ReadDir(basedir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return c, nil
+		}
+		return nil, err
+	}
+	for _, hostdir := range hostdirs {
+		fullpath := filepath.Join(basedir, hostdir.Name(), "exchanges.yaml")
+		f, err := os.Open(fullpath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, errors.Wrapf(err, "failed to open %s", fullpath)
+		}
+		defer f.Close()
+		es, err := load(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to load yaml for %s", hostdir.Name())
+		}
+		c.hosts[hostdir.Name()] = es
+	}
+	return c, nil
 }
 
 func (c *Cache) Record(req *http.Request) error {

@@ -65,7 +65,10 @@ func (s *Server) connectionCacheHandler() {
 		func(req *http.Request, pctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 			log.Printf("[INFO] req %s %s", pctx.Req.Method, pctx.Req.URL.Host+pctx.Req.URL.Path)
 
-			c := cache.New(".webmock")
+			c, err := cache.New(".webmock")
+			if err != nil {
+				panic(err)
+			}
 			if err := c.Record(req); err != nil {
 				panic(err)
 			}
