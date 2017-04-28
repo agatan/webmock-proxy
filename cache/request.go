@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"bytes"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 )
@@ -34,4 +36,48 @@ func newRecordRequest(body []byte, req *http.Request) *request {
 	}
 
 	return r
+}
+
+func (r *request) match(req *http.Request) bool {
+	if r.Path != req.URL.Path || r.Method != req.Method {
+		return false
+	}
+	for key, vs := range r.Header {
+		reqvs, ok := req.Header[key]
+		if !ok {
+			return false
+		}
+		for _, v := range vs {
+			ok := false
+			for _, reqv := range reqvs {
+				if v.match(reqv) {
+					ok = true
+					break
+				}
+			}
+			if !ok {
+				return false
+			}
+		}
+	}
+	body, err := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	req.Body = ioutil.NopCloser(bytes.NewReader(body))
+	if err != nil {
+		return false
+	}
+	return r.Body == string(body)
+}
+
+func (h *headerValue) match(t string) bool {
+	if h == nil {
+		return true
+	}
+	if h.compiledRegexp != nil {
+		return h.compiledRegexp.MatchString(t)
+	}
+	if h.Text != "" {
+		return h.Text == t
+	}
+	return true
 }
