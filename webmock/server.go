@@ -65,14 +65,6 @@ func (s *Server) connectionCacheHandler() {
 		func(req *http.Request, pctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 			log.Printf("[INFO] req %s %s", pctx.Req.Method, pctx.Req.URL.Host+pctx.Req.URL.Path)
 
-			c, err := cache.New(".webmock")
-			if err != nil {
-				panic(err)
-			}
-			if err := c.Record(req); err != nil {
-				panic(err)
-			}
-
 			body, err := ioutil.ReadAll(req.Body)
 			if err != nil {
 				log.Printf("failed to copy request: %v", err)
@@ -87,6 +79,14 @@ func (s *Server) connectionCacheHandler() {
 			func(b []byte, pctx *goproxy.ProxyCtx) []byte {
 				log.Printf("[INFO] resp %s", pctx.Resp.Status)
 				ctx := pctx.UserData.(*Context)
+				c, err := cache.New(".webmock")
+				if err != nil {
+					panic(err)
+				}
+				if err := c.Record(ctx.RequestBody, pctx.Req, b, pctx.Resp); err != nil {
+					panic(err)
+				}
+
 				if err := s.cache.Save(ctx.RequestBody, pctx.Req, b, pctx.Resp); err != nil {
 					log.Printf("[ERROR] %v", err)
 				}

@@ -11,20 +11,8 @@ import (
 )
 
 type exchange struct {
-	Request *request `yaml:"request"`
-}
-
-type request struct {
-	Method string                    `yaml:"method"`
-	Path   string                    `yaml:"path"`
-	Header map[string][]*headerValue `yaml:"header,omitempty"`
-	Body   string                    `yaml:"body,omitempty"`
-}
-
-type headerValue struct {
-	Text           string `yaml:"text,omitempty"`
-	Regexp         string `yaml:"regexp,omitempty"`
-	compiledRegexp *regexp.Regexp
+	Request  *request  `yaml:"request"`
+	Response *response `yaml:"response"`
 }
 
 func load(r io.Reader) ([]*exchange, error) {
@@ -37,7 +25,7 @@ func load(r io.Reader) ([]*exchange, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal exchanges")
 	}
 
-	// compile regexps
+	// compile regexps in requests
 	for _, e := range es {
 		for k, vs := range e.Request.Header {
 			for _, v := range vs {

@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"bytes"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -49,28 +48,9 @@ func New(basedir string) (*Cache, error) {
 	return c, nil
 }
 
-func (c *Cache) Record(req *http.Request) error {
-	r := new(request)
-	r.Method = req.Method
-	r.Path = req.URL.Path
+func (c *Cache) Record(reqBody []byte, req *http.Request, respBody []byte, resp *http.Response) error {
 
-	defer req.Body.Close()
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return errors.Wrap(err, "failed to read request body")
-	}
-	r.Body = string(body)
-	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
-	r.Header = make(map[string][]*headerValue)
-	for k, vs := range req.Header {
-		r.Header[k] = make([]*headerValue, len(vs))
-		for i, v := range vs {
-			r.Header[k][i] = &headerValue{Text: v}
-		}
-	}
-
-	ex := &exchange{Request: r}
+	ex := &exchange{Request: newRecordRequest(reqBody, req), Response: newRecordResponse(respBody, resp)}
 
 	if old, ok := c.hosts[req.Host]; ok {
 		c.hosts[req.Host] = append(old, ex)
