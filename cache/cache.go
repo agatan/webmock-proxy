@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"bytes"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,6 +17,8 @@ type Cache struct {
 	basedir string
 	hosts   map[string][]*exchange
 }
+
+var ErrNoCacheFound error = errors.New("no cache found")
 
 func New(basedir string) (*Cache, error) {
 	c := &Cache{
@@ -70,4 +73,23 @@ func (c *Cache) Record(reqBody []byte, req *http.Request, respBody []byte, resp 
 		return errors.Wrap(err, "failed to marshal exchanges into yaml")
 	}
 	return ioutil.WriteFile(savepath, data, 0644)
+}
+
+func (c *Cache) Replay(req *http.Request) (*http.Response, error) {
+	exchanges, ok := c.hosts[req.Host]
+	if !ok {
+		return nil, ErrNoCacheFound
+	}
+	body, err := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	req.Body = ioutil.NopCloser(bytes.NewReader(body))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read request body")
+	}
+	for _, ex := range exchanges {
+		if ex.Request.match(body, req) {
+			return ex.Response.httpResponse(), nil
+		}
+	}
+	return nil, ErrNoCacheFound
 }

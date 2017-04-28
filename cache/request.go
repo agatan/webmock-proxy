@@ -1,8 +1,6 @@
 package cache
 
 import (
-	"bytes"
-	"io/ioutil"
 	"net/http"
 	"regexp"
 )
@@ -38,7 +36,7 @@ func newRecordRequest(body []byte, req *http.Request) *request {
 	return r
 }
 
-func (r *request) match(req *http.Request) bool {
+func (r *request) match(body []byte, req *http.Request) bool {
 	if r.Path != req.URL.Path || r.Method != req.Method {
 		return false
 	}
@@ -59,12 +57,6 @@ func (r *request) match(req *http.Request) bool {
 				return false
 			}
 		}
-	}
-	body, err := ioutil.ReadAll(req.Body)
-	req.Body.Close()
-	req.Body = ioutil.NopCloser(bytes.NewReader(body))
-	if err != nil {
-		return false
 	}
 	return r.Body == string(body)
 }

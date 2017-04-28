@@ -99,7 +99,11 @@ func (s *Server) mockOnlyHandler() {
 	s.proxy.OnRequest().DoFunc(
 		func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 			log.Printf("[INFO] req %s %s", ctx.Req.Method, ctx.Req.URL.Host+ctx.Req.URL.Path)
-			resp, err := s.cache.Find(req)
+			c, err := cache.New(".webmock")
+			if err != nil {
+				panic(err)
+			}
+			resp, err := c.Replay(req)
 			if err != nil {
 				return req, newErrorResponse(req, err)
 			}

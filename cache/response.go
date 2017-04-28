@@ -1,31 +1,35 @@
 package cache
 
-import "net/http"
+import (
+	"io/ioutil"
+	"net/http"
+	"strings"
+)
 
 type response struct {
-	Status     string              `yaml:"status"`
-	StatusCode int                 `yaml:"status_code"`
-	Proto      string              `yaml:"proto"` // e.g. "HTTP/1.1"
-	Header     map[string][]string `yaml:"header,omitempty"`
-	Body       string              `yaml:"body,omitempty"`
+	Status     string      `yaml:"status"`
+	StatusCode int         `yaml:"status_code"`
+	Proto      string      `yaml:"proto"` // e.g. "HTTP/1.1"
+	Header     http.Header `yaml:"header,omitempty"`
+	Body       string      `yaml:"body,omitempty"`
 }
 
 func newRecordResponse(body []byte, resp *http.Response) *response {
-	r := &response{
+	return &response{
 		Status:     resp.Status,
 		StatusCode: resp.StatusCode,
 		Proto:      resp.Proto,
-		Header:     make(map[string][]string),
+		Header:     resp.Header,
 		Body:       string(body), // FIXME(agatan): binary body
 	}
+}
 
-	for k, vs := range resp.Header {
-		rs := make([]string, len(vs))
-		for i, v := range vs {
-			rs[i] = v
-		}
-		r.Header[k] = rs
+func (r *response) httpResponse() *http.Response {
+	return &http.Response{
+		Status:     r.Status,
+		StatusCode: r.StatusCode,
+		Proto:      r.Proto,
+		Header:     r.Header,
+		Body:       ioutil.NopCloser(strings.NewReader(r.Body)),
 	}
-
-	return r
 }
