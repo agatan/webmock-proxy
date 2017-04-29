@@ -1,5 +1,5 @@
-cache
 webmock-proxy
 database.db
 /vendor
 /bin
+.webmock
