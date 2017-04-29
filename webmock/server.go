@@ -8,50 +8,23 @@ import (
 	"net/http"
 
 	"github.com/elazarl/goproxy"
-	"github.com/jinzhu/gorm"
 	"github.com/wantedly/webmock-proxy/cache"
 )
 
 type Server struct {
 	config *Config
-	cache  Cache
 	proxy  *goproxy.ProxyHttpServer
 	body   string
 	head   map[string][]string
 }
 
 func NewServer(config *Config) (*Server, error) {
-	var cache Cache
-	if config.local == true {
-		cache = NewFileCache(config.cacheDir)
-	} else {
-		db, err := initDB(config)
-		if err != nil {
-			return nil, err
-		}
-		cache = NewDBCache(db)
-	}
-
 	return &Server{
 		config: config,
-		cache:  cache,
 		proxy:  goproxy.NewProxyHttpServer(),
 		body:   "",
 		head:   make(map[string][]string),
 	}, nil
-}
-
-func initDB(config *Config) (*gorm.DB, error) {
-	if config.local == false {
-		db, err := NewDBConnection()
-		if err != nil {
-			return nil, fmt.Errorf("[ERROR] Faild to connect database: %v", err)
-		}
-		log.Println("[INFO] Use database.")
-		return db, nil
-	}
-	log.Println("[INFO] Use local cache files.")
-	return nil, nil
 }
 
 func newErrorResponse(req *http.Request, err error) *http.Response {
@@ -85,10 +58,6 @@ func (s *Server) connectionCacheHandler() {
 				}
 				if err := c.Record(ctx.RequestBody, pctx.Req, b, pctx.Resp); err != nil {
 					panic(err)
-				}
-
-				if err := s.cache.Save(ctx.RequestBody, pctx.Req, b, pctx.Resp); err != nil {
-					log.Printf("[ERROR] %v", err)
 				}
 				return b
 			}))
