@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -15,6 +16,7 @@ import (
 
 type Cache struct {
 	basedir string
+	mu      sync.RWMutex
 	hosts   map[string][]*exchange
 }
 
@@ -55,6 +57,8 @@ func (c *Cache) Record(reqBody []byte, req *http.Request, respBody []byte, resp 
 
 	ex := &exchange{Request: newRecordRequest(reqBody, req), Response: newRecordResponse(respBody, resp)}
 
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if old, ok := c.hosts[req.Host]; ok {
 		c.hosts[req.Host] = append(old, ex)
 	} else {
@@ -76,7 +80,9 @@ func (c *Cache) Record(reqBody []byte, req *http.Request, respBody []byte, resp 
 }
 
 func (c *Cache) Replay(req *http.Request) (*http.Response, error) {
+	c.mu.RLock()
 	exchanges, ok := c.hosts[req.Host]
+	c.mu.RUnlock()
 	if !ok {
 		return nil, ErrNoCacheFound
 	}
