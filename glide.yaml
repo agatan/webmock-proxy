@@ -1,3 +1,5 @@
 package: github.com/wantedly/webmock-proxy
 import:
 - package: github.com/elazarl/goproxy
+- package: gopkg.in/yaml.v2
+- package: github.com/pkg/errors

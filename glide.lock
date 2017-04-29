@@ -1,6 +1,10 @@
-hash: 04ecc5dd6662b0586bd0933652971f74422b3113ea175669741a8327f5369afe
-updated: 2016-06-21T20:42:06.027898228+09:00
+hash: 45aa36e5fbeace9fbc112da3fd5f1385f8540aee82da523aa88726acc96e5aff
+updated: 2017-04-30T00:14:29.908060511+09:00
 imports:
 - name: github.com/elazarl/goproxy
   version: 52c137b4b19acaf8cde1d9e0579d928519918919
-devImports: []
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: gopkg.in/yaml.v2
+  version: a3f3340b5840cee44f372bddb5880fcbc419b46a
+testImports: []
