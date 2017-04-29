@@ -6,7 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/wantedly/webmock-proxy/cache"
+	"github.com/wantedly/webmock-proxy/webmock/cache"
+	"github.com/wantedly/webmock-proxy/webmock/proxy"
 )
 
 func main() {
@@ -16,11 +17,11 @@ func main() {
 	}
 	port := flag.Int("port", 8080, "listening port")
 	flag.Parse()
-	var s *server
+	var s *proxy.Server
 	if len(flag.Args()) == 0 || flag.Arg(0) == "replay" {
-		s = newReplayServer(c)
+		s = proxy.NewReplayServer(c)
 	} else if flag.Arg(0) == "record" {
-		s = newRecordServer(c)
+		s = proxy.NewRecordServer(c)
 	} else {
 		log.Fatalf("no such command: %s", flag.Arg(0))
 	}

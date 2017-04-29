@@ -1,4 +1,4 @@
-package main
+package proxy
 
 import (
 	"bytes"
@@ -8,16 +8,16 @@ import (
 	"net/http"
 
 	"github.com/elazarl/goproxy"
-	"github.com/wantedly/webmock-proxy/cache"
+	"github.com/wantedly/webmock-proxy/webmock/cache"
 )
 
-type server struct {
+type Server struct {
 	cache *cache.Cache
 	proxy *goproxy.ProxyHttpServer
 }
 
-func newRecordServer(cache *cache.Cache) *server {
-	s := &server{
+func NewRecordServer(cache *cache.Cache) *Server {
+	s := &Server{
 		cache: cache,
 		proxy: goproxy.NewProxyHttpServer(),
 	}
@@ -48,8 +48,8 @@ func newRecordServer(cache *cache.Cache) *server {
 	return s
 }
 
-func newReplayServer(cache *cache.Cache) *server {
-	s := &server{
+func NewReplayServer(cache *cache.Cache) *Server {
+	s := &Server{
 		cache: cache,
 		proxy: goproxy.NewProxyHttpServer(),
 	}
@@ -67,6 +67,6 @@ func newReplayServer(cache *cache.Cache) *server {
 	return s
 }
 
-func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.proxy.ServeHTTP(w, r)
 }
