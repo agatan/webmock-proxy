@@ -3,30 +3,45 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
+	"os"
 
 	"github.com/wantedly/webmock-proxy/webmock/cache"
 	"github.com/wantedly/webmock-proxy/webmock/proxy"
 )
 
 func main() {
-	c, err := cache.New(".webmock")
-	if err != nil {
-		log.Fatal(err)
+	os.Exit(run(os.Args))
+}
+
+func run(args []string) int {
+	f := flag.NewFlagSet("webmock-proxy", flag.ContinueOnError)
+
+	dir := f.String("dir", ".webmock", "cache directory")
+	record := f.Bool("record", false, "record http/https exchanges")
+	port := f.Int("port", 8080, "listening port")
+
+	if err := f.Parse(args[1:]); err != nil {
+		return 1
 	}
-	port := flag.Int("port", 8080, "listening port")
-	flag.Parse()
+
+	c, err := cache.New(*dir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+
 	var s *proxy.Server
-	if len(flag.Args()) == 0 || flag.Arg(0) == "replay" {
-		s = proxy.NewReplayServer(c)
-	} else if flag.Arg(0) == "record" {
+	if *record {
 		s = proxy.NewRecordServer(c)
 	} else {
-		log.Fatalf("no such command: %s", flag.Arg(0))
+		s = proxy.NewReplayServer(c)
 	}
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), s); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		return 1
 	}
+
+	return 0
 }
