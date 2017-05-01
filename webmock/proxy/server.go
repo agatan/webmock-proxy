@@ -8,15 +8,15 @@ import (
 	"net/http"
 
 	"github.com/elazarl/goproxy"
-	"github.com/wantedly/webmock-proxy/webmock/cache"
+	"github.com/wantedly/webmock-proxy/webmock/store"
 )
 
 type Server struct {
-	cache *cache.Cache
+	cache *store.Cache
 	proxy *goproxy.ProxyHttpServer
 }
 
-func NewRecordServer(cache *cache.Cache) *Server {
+func NewRecordServer(cache *store.Cache) *Server {
 	s := &Server{
 		cache: cache,
 		proxy: goproxy.NewProxyHttpServer(),
@@ -48,7 +48,7 @@ func NewRecordServer(cache *cache.Cache) *Server {
 	return s
 }
 
-func NewReplayServer(cache *cache.Cache) *Server {
+func NewReplayServer(cache *store.Cache) *Server {
 	s := &Server{
 		cache: cache,
 		proxy: goproxy.NewProxyHttpServer(),
