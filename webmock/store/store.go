@@ -3,7 +3,6 @@ package store
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,7 +16,7 @@ import (
 type Store struct {
 	basedir string
 	mu      sync.RWMutex
-	hosts   map[string][]*exchange
+	exs     []*exchange
 }
 
 var ErrNoCacheFound error = errors.New("no cache found")
@@ -25,30 +24,17 @@ var ErrNoCacheFound error = errors.New("no cache found")
 func New(basedir string) (*Store, error) {
 	s := &Store{
 		basedir: basedir,
-		hosts:   make(map[string][]*exchange),
 	}
-	hostdirs, err := ioutil.ReadDir(basedir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return s, nil
-		}
-		return nil, err
-	}
-	for _, hostdir := range hostdirs {
-		fullpath := filepath.Join(basedir, hostdir.Name(), "exchanges.yaml")
-		f, err := os.Open(fullpath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return nil, errors.Wrapf(err, "failed to open %s", fullpath)
-		}
+	yamlpath := filepath.Join(basedir, "default.yaml")
+	f, err := os.Open(yamlpath)
+	if err == nil {
 		defer f.Close()
-		es, err := loadExchanges(f)
+		s.exs, err = loadExchanges(f)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to load yaml for %s", hostdir.Name())
+			return nil, errors.Wrapf(err, "failed to load yaml %s", yamlpath)
 		}
-		s.hosts[hostdir.Name()] = es
+	} else if !os.IsNotExist(err) {
+		return nil, errors.Wrapf(err, "failed to open %s", yamlpath)
 	}
 	return s, nil
 }
@@ -59,20 +45,14 @@ func (s *Store) Record(reqBody []byte, req *http.Request, respBody []byte, resp 
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if old, ok := s.hosts[req.Host]; ok {
-		s.hosts[req.Host] = append(old, ex)
-	} else {
-		s.hosts[req.Host] = []*exchange{ex}
-	}
+	s.exs = append(s.exs, ex)
 
-	savedir := filepath.Join(s.basedir, req.Host)
-	if err := os.MkdirAll(savedir, 0777); err != nil {
-		log.Println(savedir)
+	if err := os.MkdirAll(s.basedir, 0777); err != nil {
 		return errors.Wrap(err, "failed to make directory to save")
 	}
 
-	savepath := filepath.Join(savedir, "exchanges.yaml")
-	data, err := yaml.Marshal(s.hosts[req.Host])
+	savepath := filepath.Join(s.basedir, "default.yaml")
+	data, err := yaml.Marshal(s.exs)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal exchanges into yaml")
 	}
@@ -80,19 +60,15 @@ func (s *Store) Record(reqBody []byte, req *http.Request, respBody []byte, resp 
 }
 
 func (s *Store) Replay(req *http.Request) (*http.Response, error) {
-	s.mu.RLock()
-	exchanges, ok := s.hosts[req.Host]
-	s.mu.RUnlock()
-	if !ok {
-		return nil, ErrNoCacheFound
-	}
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
 	req.Body = ioutil.NopCloser(bytes.NewReader(body))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read request body")
 	}
-	for _, ex := range exchanges {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, ex := range s.exs {
 		if ex.Request.match(body, req) {
 			return ex.Response.httpResponse(), nil
 		}

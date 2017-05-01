@@ -6,8 +6,9 @@ import (
 )
 
 type request struct {
-	Method string                    `yaml:"method"`
-	Path   string                    `yaml:"path"`
+	Host   string
+	Method string
+	Path   string
 	Header map[string][]*headerValue `yaml:"header,omitempty"`
 	Body   string                    `yaml:"body,omitempty"`
 }
@@ -19,11 +20,12 @@ type headerValue struct {
 }
 
 func newRecordRequest(body []byte, req *http.Request) *request {
-	r := new(request)
-	r.Method = req.Method
-	r.Path = req.URL.Path
-
-	r.Body = string(body)
+	r := &request{
+		Host:   req.Host,
+		Method: req.Method,
+		Path:   req.URL.Path,
+		Body:   string(body),
+	}
 
 	r.Header = make(map[string][]*headerValue)
 	for k, vs := range req.Header {
@@ -37,7 +39,7 @@ func newRecordRequest(body []byte, req *http.Request) *request {
 }
 
 func (r *request) match(body []byte, req *http.Request) bool {
-	if r.Path != req.URL.Path || r.Method != req.Method {
+	if r.Host != req.Host || r.Path != req.URL.Path || r.Method != req.Method {
 		return false
 	}
 	for key, vs := range r.Header {
