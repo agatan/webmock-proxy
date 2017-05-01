@@ -8,17 +8,17 @@ import (
 	"net/http"
 
 	"github.com/elazarl/goproxy"
-	"github.com/wantedly/webmock-proxy/webmock/cache"
+	"github.com/wantedly/webmock-proxy/webmock/store"
 )
 
 type Server struct {
-	cache *cache.Cache
+	store *store.Store
 	proxy *goproxy.ProxyHttpServer
 }
 
-func NewRecordServer(cache *cache.Cache) *Server {
+func NewRecordServer(cache *store.Store) *Server {
 	s := &Server{
-		cache: cache,
+		store: cache,
 		proxy: goproxy.NewProxyHttpServer(),
 	}
 	s.proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
@@ -40,7 +40,7 @@ func NewRecordServer(cache *cache.Cache) *Server {
 			func(respBody []byte, pctx *goproxy.ProxyCtx) []byte {
 				log.Printf("[INFO] resp %s", pctx.Resp.Status)
 				reqBody := pctx.UserData.([]byte)
-				if err := s.cache.Record(reqBody, pctx.Req, respBody, pctx.Resp); err != nil {
+				if err := s.store.Record(reqBody, pctx.Req, respBody, pctx.Resp); err != nil {
 					panic(err)
 				}
 				return respBody
@@ -48,16 +48,16 @@ func NewRecordServer(cache *cache.Cache) *Server {
 	return s
 }
 
-func NewReplayServer(cache *cache.Cache) *Server {
+func NewReplayServer(cache *store.Store) *Server {
 	s := &Server{
-		cache: cache,
+		store: cache,
 		proxy: goproxy.NewProxyHttpServer(),
 	}
 	s.proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
 	s.proxy.OnRequest().DoFunc(
 		func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 			log.Printf("[INFO] req %s %s", ctx.Req.Method, ctx.Req.URL.Host+ctx.Req.URL.Path)
-			resp, err := s.cache.Replay(req)
+			resp, err := s.store.Replay(req)
 			if err != nil {
 				msg := fmt.Sprintf(`{"error": %q}`, err.Error())
 				return req, goproxy.NewResponse(ctx.Req, "application/json", http.StatusInternalServerError, msg)

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/wantedly/webmock-proxy/webmock/cache"
 	"github.com/wantedly/webmock-proxy/webmock/proxy"
+	"github.com/wantedly/webmock-proxy/webmock/store"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func run(args []string) int {
 		return 1
 	}
 
-	c, err := cache.New(*dir)
+	c, err := store.New(*dir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
