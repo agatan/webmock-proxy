@@ -27,27 +27,29 @@ func run(args []string) int {
 	}
 
 	if err := os.MkdirAll(*dir, 0755); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		return 1
 	}
-	var exs store.Exchanges
+
 	yamlpath := filepath.Join(*dir, "default.yaml")
+	var exs store.Exchanges
 	if _, err := os.Stat(yamlpath); err == nil {
 		y, err := os.Open(yamlpath)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s\n", err)
 			return 1
 		}
 		exs, err = store.LoadExchanges(y)
 		y.Close()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s\n", err)
 			return 1
 		}
 	}
+
 	out, err := os.Create(yamlpath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		return 1
 	}
 	store := store.New(out, exs)
@@ -60,7 +62,7 @@ func run(args []string) int {
 	}
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), s); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		return 1
 	}
 
