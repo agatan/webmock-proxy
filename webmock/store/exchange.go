@@ -10,12 +10,14 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+type Exchanges []*exchange
+
 type exchange struct {
 	Request  *request  `yaml:"request"`
 	Response *response `yaml:"response"`
 }
 
-func loadExchanges(r io.Reader) ([]*exchange, error) {
+func LoadExchanges(r io.Reader) (Exchanges, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read yaml")

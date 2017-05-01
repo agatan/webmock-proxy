@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/wantedly/webmock-proxy/webmock/proxy"
 	"github.com/wantedly/webmock-proxy/webmock/store"
@@ -25,17 +26,37 @@ func run(args []string) int {
 		return 1
 	}
 
-	c, err := store.New(*dir)
+	if err := os.MkdirAll(*dir, 0755); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	var exs store.Exchanges
+	yamlpath := filepath.Join(*dir, "default.yaml")
+	if _, err := os.Stat(yamlpath); err == nil {
+		y, err := os.Open(yamlpath)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		exs, err = store.LoadExchanges(y)
+		y.Close()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+	}
+	out, err := os.Create(yamlpath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+	store := store.New(out, exs)
 
 	var s *proxy.Server
 	if *record {
-		s = proxy.NewRecordServer(c)
+		s = proxy.NewRecordServer(store)
 	} else {
-		s = proxy.NewReplayServer(c)
+		s = proxy.NewReplayServer(store)
 	}
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), s); err != nil {
