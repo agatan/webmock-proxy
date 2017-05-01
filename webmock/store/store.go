@@ -58,10 +58,9 @@ func (s *Store) Replay(req *http.Request) (*http.Response, error) {
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for _, ex := range s.exs {
-		if ex.Request.match(body, req) {
-			return ex.Response.httpResponse(), nil
-		}
+	resp := s.exs.Lookup(body, req)
+	if resp != nil {
+		return resp, nil
 	}
 	return nil, ErrNoCacheFound
 }

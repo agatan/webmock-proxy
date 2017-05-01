@@ -3,6 +3,8 @@ package store
 import (
 	"net/http"
 	"regexp"
+
+	"github.com/pkg/errors"
 )
 
 type request struct {
@@ -36,6 +38,20 @@ func newRecordRequest(body []byte, req *http.Request) *request {
 	}
 
 	return r
+}
+
+func (r *request) compile() (err error) {
+	for k, vs := range r.Header {
+		for _, v := range vs {
+			if v.Regexp != "" {
+				v.compiledRegexp, err = regexp.Compile(v.Regexp)
+				if err != nil {
+					return errors.Wrapf(err, "failed to compile regexp %q for %s", v.Regexp, k)
+				}
+			}
+		}
+	}
+	return
 }
 
 func (r *request) match(body []byte, req *http.Request) bool {

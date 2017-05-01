@@ -3,7 +3,7 @@ package store
 import (
 	"io"
 	"io/ioutil"
-	"regexp"
+	"net/http"
 
 	"github.com/pkg/errors"
 
@@ -29,16 +29,18 @@ func LoadExchanges(r io.Reader) (Exchanges, error) {
 
 	// compile regexps in requests
 	for _, e := range es {
-		for k, vs := range e.Request.Header {
-			for _, v := range vs {
-				if v.Regexp != "" {
-					v.compiledRegexp, err = regexp.Compile(v.Regexp)
-					if err != nil {
-						return nil, errors.Wrapf(err, "failed to compile regexp %q for %q in the request to %s %q", v.Regexp, k, e.Request.Method, e.Request.Path)
-					}
-				}
-			}
+		if err := e.Request.compile(); err != nil {
+			return nil, errors.Wrapf(err, "failed to load request %s %s/%s", e.Request.Method, e.Request.Host, e.Request.Path)
 		}
 	}
 	return es, nil
+}
+
+func (exs Exchanges) Lookup(body []byte, req *http.Request) *http.Response {
+	for _, ex := range exs {
+		if ex.Request.match(body, req) {
+			return ex.Response.httpResponse()
+		}
+	}
+	return nil
 }
