@@ -14,7 +14,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-type Cache struct {
+type Store struct {
 	basedir string
 	mu      sync.RWMutex
 	hosts   map[string][]*exchange
@@ -22,15 +22,15 @@ type Cache struct {
 
 var ErrNoCacheFound error = errors.New("no cache found")
 
-func New(basedir string) (*Cache, error) {
-	c := &Cache{
+func New(basedir string) (*Store, error) {
+	s := &Store{
 		basedir: basedir,
 		hosts:   make(map[string][]*exchange),
 	}
 	hostdirs, err := ioutil.ReadDir(basedir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return c, nil
+			return s, nil
 		}
 		return nil, err
 	}
@@ -48,41 +48,41 @@ func New(basedir string) (*Cache, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to load yaml for %s", hostdir.Name())
 		}
-		c.hosts[hostdir.Name()] = es
+		s.hosts[hostdir.Name()] = es
 	}
-	return c, nil
+	return s, nil
 }
 
-func (c *Cache) Record(reqBody []byte, req *http.Request, respBody []byte, resp *http.Response) error {
+func (s *Store) Record(reqBody []byte, req *http.Request, respBody []byte, resp *http.Response) error {
 
 	ex := &exchange{Request: newRecordRequest(reqBody, req), Response: newRecordResponse(respBody, resp)}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if old, ok := c.hosts[req.Host]; ok {
-		c.hosts[req.Host] = append(old, ex)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if old, ok := s.hosts[req.Host]; ok {
+		s.hosts[req.Host] = append(old, ex)
 	} else {
-		c.hosts[req.Host] = []*exchange{ex}
+		s.hosts[req.Host] = []*exchange{ex}
 	}
 
-	savedir := filepath.Join(c.basedir, req.Host)
+	savedir := filepath.Join(s.basedir, req.Host)
 	if err := os.MkdirAll(savedir, 0777); err != nil {
 		log.Println(savedir)
 		return errors.Wrap(err, "failed to make directory to save")
 	}
 
 	savepath := filepath.Join(savedir, "exchanges.yaml")
-	data, err := yaml.Marshal(c.hosts[req.Host])
+	data, err := yaml.Marshal(s.hosts[req.Host])
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal exchanges into yaml")
 	}
 	return ioutil.WriteFile(savepath, data, 0644)
 }
 
-func (c *Cache) Replay(req *http.Request) (*http.Response, error) {
-	c.mu.RLock()
-	exchanges, ok := c.hosts[req.Host]
-	c.mu.RUnlock()
+func (s *Store) Replay(req *http.Request) (*http.Response, error) {
+	s.mu.RLock()
+	exchanges, ok := s.hosts[req.Host]
+	s.mu.RUnlock()
 	if !ok {
 		return nil, ErrNoCacheFound
 	}
