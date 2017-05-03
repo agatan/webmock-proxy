@@ -3,45 +3,52 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
+	"os/signal"
 
-	"github.com/wantedly/webmock-proxy/webmock/proxy"
-	"github.com/wantedly/webmock-proxy/webmock/store"
+	"github.com/wantedly/webmock-proxy/webmock"
 )
 
 func main() {
-	os.Exit(run(os.Args))
+	err, status := run(os.Args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+	}
+	os.Exit(status)
 }
 
-func run(args []string) int {
+func run(args []string) (error, int) {
 	f := flag.NewFlagSet("webmock-proxy", flag.ContinueOnError)
 
 	dir := f.String("dir", ".webmock", "cache directory")
 	record := f.Bool("record", false, "record http/https exchanges")
-	port := f.Int("port", 8080, "listening port")
+	addr := f.String("addr", ":8080", "listening address")
 
 	if err := f.Parse(args[1:]); err != nil {
-		return 1
+		return err, 1
 	}
 
-	c, err := store.New(*dir)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
-	}
-
-	var s *proxy.Server
+	var options []webmock.Option
+	options = append(options, webmock.BaseDir(*dir))
 	if *record {
-		s = proxy.NewRecordServer(c)
-	} else {
-		s = proxy.NewReplayServer(c)
+		options = append(options, webmock.RecordMode)
 	}
+	options = append(options, webmock.Addr(*addr))
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), s); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
+	px, err := webmock.NewProxy(options...)
+	if err != nil {
+		return err, 1
 	}
+	defer func() {
+		if err := px.Close(); err != nil {
+			panic(err)
+		}
+	}()
+	fmt.Printf("Listening on %s\n", px.URL.String())
 
-	return 0
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	<-ch
+
+	return nil, 0
 }
