@@ -1,0 +1,26 @@
+- request:
+    host: 200.example.com
+    method: GET
+    path: /
+    header:
+  response:
+    status: 200 OK
+    status_code: 200
+    proto: HTTP/1.1
+    header:
+      Content-Type:
+      - application/json; charset=utf-8
+      Status:
+      - 200 OK
+    body: ok
+- request:
+    host: 502.example.com
+    method: GET
+    path: /
+    header:
+  response:
+    status: 502 Bad Gateway
+    status_code: 502
+    proto: HTTP/1.1
+    header:
+    body:
