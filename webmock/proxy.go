@@ -105,9 +105,7 @@ func (p *Proxy) registerRecordHandlers() {
 			func(respBody []byte, pctx *goproxy.ProxyCtx) []byte {
 				log.Printf("[INFO] resp %s", pctx.Resp.Status)
 				reqBody := pctx.UserData.([]byte)
-				if err := p.store.Record(reqBody, pctx.Req, respBody, pctx.Resp); err != nil {
-					panic(err)
-				}
+				p.store.Record(reqBody, pctx.Req, respBody, pctx.Resp)
 				return respBody
 			}))
 }
@@ -145,18 +143,22 @@ func (p *Proxy) goServe() {
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
-		if err := p.Server.Serve(p.listener); err != nil && err != http.ErrServerClosed {
-			panic(err)
-		}
+		_ = p.Server.Serve(p.listener)
 	}()
 }
 
-func (p *Proxy) Close() {
+func (p *Proxy) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if !p.closed {
 		p.closed = true
-		p.listener.Close()
+		if err := p.listener.Close(); err != nil {
+			return err
+		}
 		p.Server.SetKeepAlivesEnabled(false)
+		if p.IsRecordMode {
+			return p.store.Flush()
+		}
 	}
+	return nil
 }

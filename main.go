@@ -39,7 +39,11 @@ func run(args []string) (error, int) {
 	if err != nil {
 		return err, 1
 	}
-	defer px.Close()
+	defer func() {
+		if err := px.Close(); err != nil {
+			panic(err)
+		}
+	}()
 	fmt.Printf("Listening on %s\n", px.URL.String())
 
 	ch := make(chan os.Signal, 1)
