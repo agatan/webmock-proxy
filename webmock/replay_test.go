@@ -3,6 +3,7 @@ package webmock
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"testing"
 )
 
@@ -39,5 +40,21 @@ func TestReplayGetRoot(t *testing.T) {
 				st.Fatalf(`expected response is %q, but got %q`, tc.body, string(body))
 			}
 		})
+	}
+}
+
+func TestReplayNotFound(t *testing.T) {
+	px, err := NewProxy(BaseDir("../_test"), ReplayMode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer px.Close()
+
+	resp, err := px.Client.Get("http://no.such.host.server")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusTeapot {
+		t.Fatalf("expected status is 418 I'm a teapot, but got %d: %s", resp.StatusCode, resp.Status)
 	}
 }

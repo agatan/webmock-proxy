@@ -118,7 +118,7 @@ func (p *Proxy) registerReplayHandlers() {
 			resp, err := p.store.Replay(req)
 			if err != nil {
 				msg := fmt.Sprintf(`{"error": %q}`, err.Error())
-				return req, goproxy.NewResponse(ctx.Req, "application/json", http.StatusInternalServerError, msg)
+				return req, goproxy.NewResponse(ctx.Req, "application/json", http.StatusTeapot, msg)
 			}
 			return req, resp
 		})
