@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -22,12 +23,11 @@ type Store struct {
 
 var ErrNoCacheFound error = errors.New("no cache found")
 
-func New(basedir string) (*Store, error) {
-	s := &Store{
-		basedir:  basedir,
-		filepath: filepath.Join(basedir, "default.yaml"),
-	}
-	if err := os.MkdirAll(basedir, 0777); err != nil {
+func New(basedir string, namespace string) (*Store, error) {
+	s := new(Store)
+	nses := strings.Split(namespace, "/")
+	s.filepath = filepath.Join(basedir, filepath.Join(nses[:len(nses)-1]...), nses[len(nses)-1]+".yaml")
+	if err := os.MkdirAll(filepath.Dir(s.filepath), 0777); err != nil {
 		return nil, errors.Wrap(err, "failed to make base directory")
 	}
 	f, err := os.Open(s.filepath)

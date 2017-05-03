@@ -21,6 +21,7 @@ type Proxy struct {
 	IsRecordMode bool
 	Addr         string
 	BaseDir      string
+	Namespace    string
 	URL          *url.URL
 	Client       *http.Client
 	Server       *http.Server
@@ -65,6 +66,7 @@ func NewUnstartedProxy(options ...Option) (*Proxy, error) {
 	p := &Proxy{
 		IsRecordMode: os.Getenv("WEBMOCK_PROXY_RECORD") == "1",
 		BaseDir:      ".webmock",
+		Namespace:    "default",
 		Server:       &http.Server{Handler: gopx},
 		proxy:        gopx,
 	}
@@ -72,7 +74,7 @@ func NewUnstartedProxy(options ...Option) (*Proxy, error) {
 		op(p)
 	}
 	var err error
-	p.store, err = store.New(p.BaseDir)
+	p.store, err = store.New(p.BaseDir, p.Namespace)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize exchange store")
 	}

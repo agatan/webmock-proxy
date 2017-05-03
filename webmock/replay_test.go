@@ -8,7 +8,7 @@ import (
 )
 
 func TestReplayGetRoot(t *testing.T) {
-	px, err := NewProxy(BaseDir("../_test"), ReplayMode)
+	px, err := NewProxy(ReplayMode, BaseDir("../_test"), Namespace("replay/getroot"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestReplayGetRoot(t *testing.T) {
 }
 
 func TestReplayNotFound(t *testing.T) {
-	px, err := NewProxy(BaseDir("../_test"), ReplayMode)
+	px, err := NewProxy(ReplayMode, BaseDir("../_test"))
 	if err != nil {
 		t.Fatal(err)
 	}
