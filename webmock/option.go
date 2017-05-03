@@ -12,6 +12,10 @@ var RecordMode Option = func(p *Proxy) {
 	p.IsRecordMode = true
 }
 
+var ReplayMode Option = func(p *Proxy) {
+	p.IsRecordMode = false
+}
+
 func Addr(addr string) Option {
 	return func(p *Proxy) {
 		p.Addr = addr

@@ -26,3 +26,7 @@ clean:
 .PHONY: install
 install:
 	go install $(LDFLAGS)
+
+.PHONY: test
+test:
+	go test -cover `glide novendor`
