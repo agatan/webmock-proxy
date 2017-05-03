@@ -23,9 +23,13 @@ func run(args []string) (error, int) {
 	dir := f.String("dir", ".webmock", "cache directory")
 	record := f.Bool("record", false, "record http/https exchanges")
 	addr := f.String("addr", ":8080", "listening address")
+	namespace := f.String("namespace", "default", "mock namespace")
 
 	if err := f.Parse(args[1:]); err != nil {
-		return err, 1
+		if err == flag.ErrHelp {
+			return nil, 0
+		}
+		return nil, 1
 	}
 
 	var options []webmock.Option
@@ -33,7 +37,7 @@ func run(args []string) (error, int) {
 	if *record {
 		options = append(options, webmock.RecordMode)
 	}
-	options = append(options, webmock.Addr(*addr))
+	options = append(options, webmock.Addr(*addr), webmock.Namespace(*namespace))
 
 	px, err := webmock.NewProxy(options...)
 	if err != nil {
